@@ -33,7 +33,7 @@ enum ELayout {
 
 Compressor::Compressor(IPlugInstanceInfo instanceInfo)
   : IPLUG_CTOR(kNumParams, kNumPrograms, instanceInfo), numChannels_(PLUG_CHANNELS),
-    envelopes_(numChannels_), attack_(0), release_(0) {
+    envelopes_(numChannels_), attack_(0), release_(0), transferFunction_(0, 0) {
 
   //arguments are: name, defaultVal, minVal, maxVal, step, label
   GetParam(kThreshold)->InitDouble("Threshold", 0., -30., 0., 0.01, "dBFS");
@@ -100,16 +100,9 @@ void Compressor::ProcessDoubleReplacing(double** inputs, double** outputs, int n
         // Use the release envelope
         release_.Process(env, rectified);
       }
-      // The gain depends on how far the envelope is above the threshold (if at all)
-      double gain = makeupGain_;
-      if (env > threshold_) {
-        double targetLevel = threshold_ + (env - threshold_) * ratio_;
-        gain *= targetLevel / env;
-      }
-      *out = *in * gain;
-    }
 
-    envelopes_[channel] = env;
+      *out = *in * makeupGain_ * transferFunction_.Process(env);
+    }
   }
 }
 
@@ -143,12 +136,12 @@ void Compressor::OnParamChange(int paramIdx) {
 
 void Compressor::UpdateThreshold(double value) {
   // Convert dB level to sample magnitude
-  threshold_ = db2factor(value);
+  transferFunction_.SetThreshold(db2factor(value));
 }
 
 void Compressor::UpdateRatio(double value) {
   // Convert ratio x to 1:x
-  ratio_ = 1. / value;
+  transferFunction_.SetRatio(1. / value);
 }
 
 void Compressor::UpdateMakeupGain(double value) {

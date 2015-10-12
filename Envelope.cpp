@@ -13,6 +13,6 @@ void Envelope::SetTime(int numSamples) {
   factor_ = SamplesToFactor(numSamples);
 }
 
-void Envelope::Process(double& state, double sample) {
+void Envelope::Process(double& state, double sample) const {
   state += factor_ * (sample - state);
 }

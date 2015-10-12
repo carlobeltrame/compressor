@@ -9,7 +9,7 @@ public:
   Envelope(int numSamples);
 
   void SetTime(int numSamples);
-  void Process(double& state, double sample);
+  void Process(double& state, double sample) const;
 
 private:
 

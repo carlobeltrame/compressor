@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Envelope.h"
+#include "TransferFunction.h"
 
 class Compressor : public IPlug
 {
@@ -20,8 +21,6 @@ public:
 
 private:
   int numChannels_;
-  double threshold_;
-  double ratio_;
   double makeupGain_;
 
   void UpdateThreshold(double value);
@@ -33,6 +32,8 @@ private:
   std::vector<double> envelopes_;
   Envelope attack_;
   Envelope release_;
+
+  TransferFunction transferFunction_;
 
   inline static double db2factor(double dbValue) { return pow(10., dbValue / 20.); }
   inline static double factor2db(double scalarValue) { return 20. * log10(scalarValue); }

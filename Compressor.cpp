@@ -32,13 +32,8 @@ enum ELayout {
 };
 
 Compressor::Compressor(IPlugInstanceInfo instanceInfo)
-  :	IPLUG_CTOR(kNumParams, kNumPrograms, instanceInfo), numChannels_(PLUG_CHANNELS), envelope_(numChannels_) {
-
-  UpdateThreshold(0.);
-  UpdateRatio(2.);
-  UpdateMakeupGain(0.);
-  UpdateAttack(20.);
-  UpdateRelease(200.);
+  : IPLUG_CTOR(kNumParams, kNumPrograms, instanceInfo), numChannels_(PLUG_CHANNELS),
+    envelopes_(numChannels_), attack_(0), release_(0) {
 
   //arguments are: name, defaultVal, minVal, maxVal, step, label
   GetParam(kThreshold)->InitDouble("Threshold", 0., -30., 0., 0.01, "dBFS");
@@ -50,6 +45,12 @@ Compressor::Compressor(IPlugInstanceInfo instanceInfo)
   GetParam(kAttack)->SetShape(2);
   GetParam(kRelease)->InitDouble("Release", 200., 0.1, 1500., 0.01, "ms");
   GetParam(kRelease)->SetShape(2);
+
+  UpdateThreshold(GetParam(kThreshold)->GetDefault());
+  UpdateRatio(GetParam(kRatio)->GetDefault());
+  UpdateMakeupGain(GetParam(kMakeupGain)->GetDefault());
+  UpdateAttack(GetParam(kAttack)->GetDefault());
+  UpdateRelease(GetParam(kRelease)->GetDefault());
 
   IGraphics* pGraphics = MakeGraphics(this, kWidth, kHeight);
   pGraphics->AttachPanelBackground(&COLOR_BLACK);
@@ -86,18 +87,18 @@ void Compressor::ProcessDoubleReplacing(double** inputs, double** outputs, int n
   for (int channel = 0; channel < numChannels_; ++channel) {
     double* in = inputs[channel];
     double* out = outputs[channel];
-    double env = envelope_[channel];
+    double& env = envelopes_[channel];
 
     for (int s = 0; s < nFrames; ++s, ++in, ++out) {
       double rectified = abs(*in);
       // Is the sample above the envelope value?
-      if (rectified > envelope_[channel]) {
+      if (rectified > env) {
         // Use the attack envelope
-        env = env + attack_ * (rectified - env);
+        attack_.Process(env, rectified);
       }
       else {
         // Use the release envelope
-        env = env - release_ * (env - rectified);
+        release_.Process(env, rectified);
       }
       // The gain depends on how far the envelope is above the threshold (if at all)
       double gain = makeupGain_;
@@ -108,7 +109,7 @@ void Compressor::ProcessDoubleReplacing(double** inputs, double** outputs, int n
       *out = *in * gain;
     }
 
-    envelope_[channel] = env;
+    envelopes_[channel] = env;
   }
 }
 
@@ -157,14 +158,10 @@ void Compressor::UpdateMakeupGain(double value) {
 
 void Compressor::UpdateAttack(double value) {
   // Convert ms to number of samples
-  double samples = GetSampleRate() * value / 1000.;
-  // After the attack time, the envelope should be at most 1/1000 away from the target value
-  attack_ = 1. - pow(1. / 1000., 1. / samples);
+  attack_.SetTime(GetSampleRate() * value / 1000.);
 }
 
 void Compressor::UpdateRelease(double value) {
   // Convert ms to number of samples
-  double samples = GetSampleRate() * value / 1000.;
-  // After the release time, the envelope should be at most 1/1000 away from the target value
-  release_ = 1. - pow(1. / 1000., 1. / samples);
+  release_.SetTime(GetSampleRate() * value / 1000.);
 }

@@ -5,8 +5,6 @@
     <ClCompile Include="..\..\WDL\IPlug\IPlugVST.cpp">
       <Filter>vst2</Filter>
     </ClCompile>
-    <ClCompile Include="Envelope.cpp" />
-    <ClCompile Include="TransferFunction.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compressor.h" />
@@ -14,8 +12,6 @@
     <ClInclude Include="..\..\WDL\IPlug\IPlugVST.h">
       <Filter>vst2</Filter>
     </ClInclude>
-    <ClInclude Include="Envelope.h" />
-    <ClInclude Include="TransferFunction.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Compressor.rc" />
